@@ -5,7 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/QuepoConn.iml" filepath="$PROJECT_DIR$/QuepoConn.iml" />
       <module fileurl="file://$PROJECT_DIR$/example/app.iml" filepath="$PROJECT_DIR$/example/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/example/example.iml" filepath="$PROJECT_DIR$/example/example.iml" />
-      <module fileurl="file://$PROJECT_DIR$/quepoconn/quepoconn.iml" filepath="$PROJECT_DIR$/quepoconn/quepoconn.iml" />
+      <module fileurl="file://$PROJECT_DIR$/quepo-conn/quepo-conn.iml" filepath="$PROJECT_DIR$/quepo-conn/quepo-conn.iml" />
     </modules>
   </component>
 </project>

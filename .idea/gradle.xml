@@ -10,14 +10,14 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/example" />
-            <option value="$PROJECT_DIR$/quepoconn" />
+            <option value="$PROJECT_DIR$/quepo-conn" />
           </set>
         </option>
         <option name="myModules">
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/example" />
-            <option value="$PROJECT_DIR$/quepoconn" />
+            <option value="$PROJECT_DIR$/quepo-conn" />
           </set>
         </option>
       </GradleProjectSettings>

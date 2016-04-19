@@ -1,1 +1,1 @@
-include ':example', ':quepoconn'
+include ':example', ':quepo-conn'

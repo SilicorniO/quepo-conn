@@ -6,9 +6,11 @@ import com.silicornio.quepoconn.general.QPUtils;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +18,7 @@ import java.util.Map;
 /**
  * Created by SilicorniO
  */
-public class QPConnExecutor extends Thread{
+public class QPConnExecutor{
 
     /** Size of the buffer to read data **/
     private static final int BUFFER_STREAM_READER_SIZE = 1024;
@@ -25,7 +27,7 @@ public class QPConnExecutor extends Thread{
     private HttpURLConnection mUrlConnection = null;
 
     /** Request to execute **/
-    private QPRequest mRequest;
+    private QPConnRequest mRequest;
 
     /** Listener to send events **/
     private QPConnExecutorListener mListener;
@@ -35,24 +37,19 @@ public class QPConnExecutor extends Thread{
      * @param request QPRequest to execute
      * @param listener QPConnExecutorListener where to send events during execution
      */
-    protected QPConnExecutor(QPRequest request, QPConnExecutorListener listener){
+    protected QPConnExecutor(QPConnRequest request, QPConnExecutorListener listener){
         mRequest = request;
         mListener = listener;
-    }
-
-    @Override
-    public void run() {
-        execute();
     }
 
     /**
      * Execute the connection of the task received
      * @return QPResponse generated with the exeution of the task
      */
-    private void execute(){
+    protected void execute(){
 
         //create the response to return
-        QPResponse response = new QPResponse(mRequest);
+        QPConnResponse response = new QPConnResponse(mRequest);
 
         URL url = null;
 
@@ -65,37 +62,29 @@ public class QPConnExecutor extends Thread{
             url = new URL(mRequest.url);
             mUrlConnection = (HttpURLConnection) url.openConnection();
 
-            if(mRequest.data!=null || mRequest.dataStream!=null) {
-                QPL.i("Sending data");
-                mUrlConnection.setDoOutput(true);
-                mUrlConnection.setChunkedStreamingMode(0);
+            //set method
+            writeMethod(mUrlConnection, mRequest.method);
 
-                OutputStream os = new BufferedOutputStream(mUrlConnection.getOutputStream());
-                writeStream(os, mRequest);
-            }
+            //set headers
+            writeHeaders(mUrlConnection, mRequest.headers);
+
+            //write data
+            writeData(mUrlConnection, mRequest);
 
             //read code returned by the server
-            response.statusCode = mUrlConnection.getResponseCode();
-            QPL.i("Status code: " + response.statusCode);
+            readStatusCode(mUrlConnection, response);
 
             //read headers
-            for(Map.Entry<String, List<String>> entry : mUrlConnection.getHeaderFields().entrySet()){
-                if(entry.getValue().size()>0) {
-                    response.headers.put(entry.getKey(), entry.getValue().get(0));
-                    QPL.i("Header received '" + entry.getKey() + "' = '" + entry.getValue().get(0) + "'");
-                }
-            }
+            readHeaders(mUrlConnection, response);
 
             //read data received
-            QPL.i("Receiving data");
-            InputStream is = new BufferedInputStream(mUrlConnection.getInputStream());
-            readStream(is, response);
+            readData(mUrlConnection, response);
 
             QPL.i("Connection end in " + QPUtils.endCounter("execution") + " milliseconds");
 
         }catch(Exception e){
             QPL.e("Exception executing task " + mRequest.config.toStringId() + ": " + e.toString());
-            e.printStackTrace();
+            response.error = "Error executing task: " + e.toString();
         }finally{
             if(mUrlConnection !=null) {
                 mUrlConnection.disconnect();
@@ -107,23 +96,122 @@ public class QPConnExecutor extends Thread{
         mListener.onExecutionEnd(this, response);
     }
 
+    //----- CONFIGURATION -----
+
+    //----- REQUEST -----
+
     /**
-     * Write the stream to the connection
-     * @param os OutputStream where to send data
-     * @param request QPRequest to get data
+     * Write the method to the connection
+     * @param urlConnection HttpURLConnection
+     * @param method String method
      */
-    private void writeStream(OutputStream os, QPRequest request){
+    private void writeMethod(HttpURLConnection urlConnection, String method){
+        try {
+            urlConnection.setRequestMethod(method);
+        }catch(ProtocolException pe){
+            QPL.e("Method '" + method + "' not allowed: " + pe.toString());
+        }
+    }
+
+    /**
+     * Write the list of headers to the connection
+     * @param urlConnection HttpURLConnection
+     * @param headers List<QPConnKeyValue> list of headers
+     */
+    private static void writeHeaders(HttpURLConnection urlConnection, List<QPConnKeyValue> headers){
+        for(QPConnKeyValue entry : headers){
+            urlConnection.setRequestProperty(entry.key, entry.value);
+            QPL.i("Header sent '" + entry.key + "' = '" + entry.value + "'");
+        }
+    }
+
+    /**
+     * Write data from request into the connection if it is necessary
+     * @param urlConnection HttpURLConnection
+     * @param request QPConnRequest with data
+     */
+    private static void writeData(HttpURLConnection urlConnection, QPConnRequest request){
+
 
         try {
-            if (request.data != null) {
 
-            } else {
+            if (request.dataStream != null) {
+                QPL.i("Sending data from inputstream");
+
+                urlConnection.setDoOutput(true);
+                urlConnection.setChunkedStreamingMode(0);
+
+                //read from inputstream and set to outputstream directly
+                OutputStream os = new BufferedOutputStream(urlConnection.getOutputStream());
+                byte[] data = new byte[BUFFER_STREAM_READER_SIZE];
+                while (request.dataStream.read(data, 0, BUFFER_STREAM_READER_SIZE) != -1) {
+                    os.write(data);
+                }
+                os.flush();
+                os.close();
+
+            } else if (request.data != null){
+
+                QPL.i("Sending data: " + String.valueOf(request.data));
+
+                urlConnection.setDoOutput(true);
+
+                OutputStream os = new BufferedOutputStream(urlConnection.getOutputStream());
                 os.write(request.data);
+                os.flush();
+                os.close();
             }
-        }catch(Exception e){
-            QPL.e("Exception sending data " + request.config.toStringId()  + ": " + e.toString());
+
+
+        }catch (IOException ioe){
+            QPL.e("Exception sending data: " + ioe.toString());
         }
 
+    }
+
+    //----- RESPONSE -----
+
+    /**
+     * Read the status code from connectiong and save it in response
+     * @param urlConnection HttpURLConnection
+     * @param response QPConnResponse where to set the status code
+     */
+    private static void readStatusCode(HttpURLConnection urlConnection, QPConnResponse response){
+        try {
+            response.statusCode = urlConnection.getResponseCode();
+            QPL.i("Status code: " + response.statusCode);
+        }catch(IOException ioe){
+            QPL.e("Exception getting status code: " + ioe.toString());
+        }
+    }
+
+    /**
+     * Read the headers from the connection
+     * @param urlConnection HttpURLConnection
+     * @param response QPConnResponse where to save the headers
+     */
+    private static void readHeaders(HttpURLConnection urlConnection, QPConnResponse response){
+        for(Map.Entry<String, List<String>> entry : urlConnection.getHeaderFields().entrySet()){
+            if(entry.getValue().size()>0) {
+                response.headers.add(new QPConnKeyValue(entry.getKey(), entry.getValue().get(0)));
+                QPL.i("Header received '" + entry.getKey() + "' = '" + entry.getValue().get(0) + "'");
+            }
+        }
+    }
+
+    /**
+     * Read data from connection to the response
+     * @param urlConnection HttpURLConnection
+     * @param response QPConnResponse where to save the data
+     */
+    private static void readData(HttpURLConnection urlConnection, QPConnResponse response){
+        QPL.i("Receiving data");
+        try {
+            InputStream is = new BufferedInputStream(urlConnection.getInputStream());
+            readStream(is, response);
+        }catch(IOException ioe){
+            QPL.e("Exception receiving data: " + ioe.toString());
+        }
     }
 
     /**
@@ -131,7 +219,7 @@ public class QPConnExecutor extends Thread{
      * @param is InputStream to read data
      * @param response QPRequest to get data
      */
-    private void readStream(InputStream is, QPResponse response){
+    private static void readStream(InputStream is, QPConnResponse response){
         try {
 
             //prepare variables to read data
@@ -144,9 +232,12 @@ public class QPConnExecutor extends Thread{
                 buffer.write(data, 0, length);
             }
             buffer.flush();
+            is.close();
 
             //save data into the response
             response.data = buffer.toByteArray();
+
+            QPL.i("Data length: " + response.data.length + " bytes");
 
         }catch(Exception e){
             QPL.e("Exception receiving data " + response.config.toStringId()  + ": " + e.toString());
@@ -180,6 +271,6 @@ public class QPConnExecutor extends Thread{
          * @param executor QPConnExecutor this
          * @param response response with all data
          */
-        void onExecutionEnd(QPConnExecutor executor, QPResponse response);
+        void onExecutionEnd(QPConnExecutor executor, QPConnResponse response);
     }
 }

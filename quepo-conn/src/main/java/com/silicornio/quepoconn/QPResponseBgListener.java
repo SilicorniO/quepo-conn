@@ -10,6 +10,6 @@ public interface QPResponseBgListener{
      * @param response QPResponse with all received data
      * @param config QPConnConfig used to call to the connection
      */
-    void responseOnBackground(QPResponse response, QPConnConfig config);
+    void responseOnBackground(QPConnResponse response, QPConnConfig config);
 
 }

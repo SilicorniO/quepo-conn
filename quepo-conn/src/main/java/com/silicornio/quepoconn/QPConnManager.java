@@ -3,8 +3,10 @@ package com.silicornio.quepoconn;
 import android.os.Handler;
 import android.os.Message;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.silicornio.quepotranslator.QPTransManager;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by SilicorniO
@@ -12,7 +14,7 @@ import java.util.List;
 public class QPConnManager {
 
     /** List of executors **/
-    private List<QPConnExecutor> mExecutors = new ArrayList<>();
+    private Map<QPConnExecutor, Thread> mExecutors = new HashMap<>();
 
     /** Maximum number of executors at same time **/
     private int numMaxExecutors = 4;
@@ -23,9 +25,34 @@ public class QPConnManager {
     /** Handler to send events from the main thread **/
     private MainHandler mMainHandler = new MainHandler();
 
+    /** Configuration of the connection manager **/
+    private QPConnConf mConf;
+
+    /** Translator manager to use if we want to translate objects **/
+    private QPTransManager mTransManager;
+
+    /** Array of classes to avoid in translator manager **/
+    private Class[] mTransAvoidClasses;
+
     public QPConnManager(){
 
     }
+
+    public QPConnManager(QPConnConf conf){
+        mConf = conf;
+    }
+
+    /**
+     * Set the translator manager to apply
+     * @param transManager QPTransManager
+     * @param transAvoidClasses Class[] array of classes to avoid from translations
+     */
+    public void seTranslatorManager(QPTransManager transManager, Class[] transAvoidClasses) {
+        mTransManager = transManager;
+        mTransAvoidClasses = transAvoidClasses;
+    }
+
+    //----- CONNECTIONS -----
 
     /**
      * Add a connection
@@ -65,16 +92,34 @@ public class QPConnManager {
             return false;
         }
 
+        //translate values, prepared for executing
+        configToExecute.translateValues();
+
         //generate the request
-        QPRequest request = new QPRequest(configToExecute);
+        final QPConnRequest request = new QPConnRequest(configToExecute);
         if(!request.prepare()){
             return false;
         }
 
-        //execute
-        QPConnExecutor executor = new QPConnExecutor(request, mExecutorListener);
-        mExecutors.add(executor);
-        executor.start();
+        //create the executor
+        final QPConnExecutor executor = new QPConnExecutor(request, mExecutorListener);
+
+        //create the thread
+        Thread threadExecutor = new Thread(){
+            @Override
+            public void run() {
+
+                //translate objects if necessary
+                request.translateValues(mTransManager, mTransAvoidClasses);
+
+                //execute
+                executor.execute();
+            }
+        };
+
+        //add the executor with the thread to the map and execute
+        mExecutors.put(executor, threadExecutor);
+        threadExecutor.start();
 
         return true;
     }
@@ -84,11 +129,14 @@ public class QPConnManager {
      */
     private QPConnExecutor.QPConnExecutorListener mExecutorListener = new QPConnExecutor.QPConnExecutorListener(){
         @Override
-        public void onExecutionEnd(QPConnExecutor executor, QPResponse response) {
+        public void onExecutionEnd(QPConnExecutor executor, QPConnResponse response) {
 
             //remove the executor from the list
             if(mExecutors!=null) {
                 mExecutors.remove(executor);
+
+                //translate values if necessary
+                response.translateValues(mTransManager);
 
                 //call to the listener in background if this connection has one configured
                 if(response.config.responseBgListener!=null){
@@ -115,7 +163,7 @@ public class QPConnManager {
         public void handleMessage(Message msg) {
 
             //get the response
-            QPResponse response = (QPResponse) msg.obj;
+            QPConnResponse response = (QPConnResponse) msg.obj;
 
             //call to the listener (it was checked before if it was null or not)
             response.config.responseListener.responseOnMainThread(response, response.config);
@@ -133,7 +181,7 @@ public class QPConnManager {
         mQueue = null;
 
         //destroy executors
-        for(QPConnExecutor executor : mExecutors){
+        for(QPConnExecutor executor : mExecutors.keySet()){
             executor.destroy();
         }
         mExecutors.clear();

@@ -10,6 +10,6 @@ public interface QPResponseListener {
      * @param response QPResponse with all received data
      * @param config QPConnConfig used to call to the connection
      */
-    void responseOnMainThread(QPResponse response, QPConnConfig config);
+    void responseOnMainThread(QPConnResponse response, QPConnConfig config);
 
 }

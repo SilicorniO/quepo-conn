@@ -15,6 +15,8 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
+import javax.net.ssl.HttpsURLConnection;
+
 /**
  * Created by SilicorniO
  */
@@ -60,7 +62,14 @@ public class QPConnExecutor{
 
             //request
             url = new URL(mRequest.url);
-            mUrlConnection = (HttpURLConnection) url.openConnection();
+            if(mRequest.url.startsWith("https")) {
+                mUrlConnection = (HttpsURLConnection) url.openConnection();
+                if(mRequest.sslSocketFactory!=null) {
+                    ((HttpsURLConnection) mUrlConnection).setSSLSocketFactory(mRequest.sslSocketFactory);
+                }
+            }else{
+                mUrlConnection = (HttpURLConnection) url.openConnection();
+            }
 
             //set method
             writeMethod(mUrlConnection, mRequest.method);

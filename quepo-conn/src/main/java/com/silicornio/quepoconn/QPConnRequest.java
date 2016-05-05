@@ -12,6 +12,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import javax.net.ssl.SSLSocketFactory;
+
 /**
  * Created by SilicorniO
  */
@@ -35,15 +37,19 @@ public class QPConnRequest {
     /** Data but received as stream **/
     protected InputStream dataStream;
 
+    /** SSL Socket Factory associated to this request **/
+    protected SSLSocketFactory sslSocketFactory;
+
     protected QPConnRequest(QPConnConfig config){
         this.config = config;
     }
 
     /**
      * Prepare data before executing the request transforming config to final values
+     * @param ss SSLSocketFactory setted in the manager, could be null
      * @return boolean TRUE if everything is OK, FALSE if something wrong was detected
      */
-    protected boolean prepare(){
+    protected boolean prepare(SSLSocketFactory ss){
 
         //prepare url
         if(!prepareUrl()){
@@ -63,6 +69,13 @@ public class QPConnRequest {
             data = config.textData.getBytes(Charset.defaultCharset());
         }
         dataStream = config.dataOutputStream;
+
+        //prepare SSL
+        if(config.sslSocketFactory!=null){
+            sslSocketFactory = config.sslSocketFactory;
+        }else if(ss!=null){
+            sslSocketFactory = ss;
+        }
 
         return true;
     }

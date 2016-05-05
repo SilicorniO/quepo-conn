@@ -8,6 +8,8 @@ import com.silicornio.quepotranslator.QPTransManager;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.net.ssl.SSLSocketFactory;
+
 /**
  * Created by SilicorniO
  */
@@ -34,6 +36,9 @@ public class QPConnManager {
     /** Array of classes to avoid in translator manager **/
     private Class[] mTransAvoidClasses;
 
+    /** SSL Socket Factory associated to this manager **/
+    protected SSLSocketFactory sslSocketFactory;
+
     public QPConnManager(){
 
     }
@@ -50,6 +55,14 @@ public class QPConnManager {
     public void seTranslatorManager(QPTransManager transManager, Class[] transAvoidClasses) {
         mTransManager = transManager;
         mTransAvoidClasses = transAvoidClasses;
+    }
+
+    /**
+     * Set the SSL Socket Factory to use with connections
+     * @param sslSocketFactory SSLSocketFactory
+     */
+    public void setSslSocketFactory(SSLSocketFactory sslSocketFactory) {
+        this.sslSocketFactory = sslSocketFactory;
     }
 
     //----- CONNECTIONS -----
@@ -97,7 +110,7 @@ public class QPConnManager {
 
         //generate the request
         final QPConnRequest request = new QPConnRequest(configToExecute);
-        if(!request.prepare()){
+        if(!request.prepare(sslSocketFactory)){
             return false;
         }
 

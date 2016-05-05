@@ -96,7 +96,12 @@ public class QPConnResponse {
         if(QPConnConfig.FORMAT_JSON.equalsIgnoreCase(config.responseFormat)){
 
             //translate the data received as text
-            mapData = QPTransUtils.convertJSONToMap(new ByteArrayInputStream(data));
+            if(data!=null) {
+                mapData = QPTransUtils.convertJSONToMap(new ByteArrayInputStream(data));
+            }else{
+                QPL.i("Data no received so we can't translate to objects");
+            }
+
         }else{
             QPL.e("Format response '" + config.responseFormat + "' incorrect");
         }

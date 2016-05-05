@@ -1,11 +1,15 @@
 package com.silicornio.quepoconn;
 
+import com.silicornio.quepoconn.general.QPL;
+
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.net.ssl.SSLSocketFactory;
 
 /**
  * Created by SilicorniO
@@ -65,6 +69,9 @@ public class QPConnConfig {
 
     /** Objects to send in the format of the request **/
     protected Object[] requestObjects;
+
+    /** SSL Socket Factory associated to this request **/
+    protected SSLSocketFactory sslSocketFactory;
 
     //listeners used by the manager to send events
     protected QPResponseBgListener responseBgListener;
@@ -192,6 +199,14 @@ public class QPConnConfig {
 
     public void setRequestObjects(Object[] requestObjects) {
         this.requestObjects = requestObjects;
+    }
+
+    public SSLSocketFactory getSslSocketFactory() {
+        return sslSocketFactory;
+    }
+
+    public void setSslSocketFactory(SSLSocketFactory sslSocketFactory) {
+        this.sslSocketFactory = sslSocketFactory;
     }
 
     public QPConnConfig clone(){
@@ -339,7 +354,13 @@ public class QPConnConfig {
                 String key = matcher.group(0);
                 int indexKey = listValues.indexOf(new QPConnKeyValue(key.substring(2, key.length()-1), null));
                 if(indexKey!=-1){
-                    text = text.replace(key, listValues.get(indexKey).value);
+                    if(listValues.get(indexKey).value!=null) {
+                        text = text.replace(key, listValues.get(indexKey).value);
+                    }else{
+                        QPL.e("Value of '" + key.substring(2, key.length()-1) + "' is null");
+                    }
+                }else{
+                    QPL.i("The attribute '" + key.substring(2, key.length()-1) + "' was not translated because there isn't a value for it");
                 }
             }
         }

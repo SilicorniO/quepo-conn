@@ -18,8 +18,12 @@ public class QPConnQueue {
      * @param config QPConnConfig to add
      */
     public void push(QPConnConfig config){
-        mQueue.add(config);
-        orderList();
+
+        synchronized (mQueue) {
+            mQueue.add(config);
+            orderList();
+        }
+
     }
 
     /**
@@ -27,7 +31,9 @@ public class QPConnQueue {
      * @param config QPConnConfig
      */
     public void remove(QPConnConfig config){
-        mQueue.remove(config);
+        synchronized (mQueue) {
+            mQueue.remove(config);
+        }
     }
 
     /**
@@ -38,8 +44,11 @@ public class QPConnQueue {
         if(mQueue.isEmpty()){
             return null;
         }else{
-            QPConnConfig config = mQueue.get(0);
-            mQueue.remove(0);
+            QPConnConfig config;
+            synchronized (mQueue) {
+                config = mQueue.get(0);
+                mQueue.remove(0);
+            }
             return config;
         }
     }

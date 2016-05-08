@@ -34,6 +34,12 @@ public class QPConnRequest {
     /** Data to send **/
     protected byte[] data;
 
+    /** Timeout for connection **/
+    protected int connectionTimeout = 0;
+
+    /** Timeout for reading **/
+    protected int readTimeout = 0;
+
     /** Data but received as stream **/
     protected InputStream dataStream;
 
@@ -56,6 +62,10 @@ public class QPConnRequest {
             return false;
         }
 
+        //copy timeouts
+        connectionTimeout = config.connectionTimeout;
+        readTimeout = config.readTimeout;
+
         //prepare headers
         headers = config.headers;
 
@@ -76,6 +86,7 @@ public class QPConnRequest {
         }else if(ss!=null){
             sslSocketFactory = ss;
         }
+
 
         return true;
     }

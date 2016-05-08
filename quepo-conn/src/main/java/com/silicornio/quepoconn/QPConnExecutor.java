@@ -70,6 +70,12 @@ public class QPConnExecutor{
             }else{
                 mUrlConnection = (HttpURLConnection) url.openConnection();
             }
+            if(mRequest.connectionTimeout>0) {
+                mUrlConnection.setConnectTimeout(mRequest.connectionTimeout*1000);
+            }
+            if(mRequest.readTimeout>0) {
+                mUrlConnection.setReadTimeout(mRequest.readTimeout*1000);
+            }
 
             //set method
             writeMethod(mUrlConnection, mRequest.method);

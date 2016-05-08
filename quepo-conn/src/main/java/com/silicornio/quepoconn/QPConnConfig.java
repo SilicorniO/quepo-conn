@@ -31,6 +31,12 @@ public class QPConnConfig {
     /** Priority of execution, bigger = more priority **/
     protected int priority = 0;
 
+    /** Timeout for connection **/
+    protected int connectionTimeout = 0;
+
+    /** Timeout for reading **/
+    protected int readTimeout = 0;
+
     /** Method to use in connection: GET, POST, PUT, ... **/
     protected String method;
 
@@ -137,6 +143,22 @@ public class QPConnConfig {
         this.method = method;
     }
 
+    public int getReadTimeout() {
+        return readTimeout;
+    }
+
+    public void setReadTimeout(int readTimeout) {
+        this.readTimeout = readTimeout;
+    }
+
+    public int getConnectionTimeout() {
+        return connectionTimeout;
+    }
+
+    public void setConnectionTimeout(int connectionTimeout) {
+        this.connectionTimeout = connectionTimeout;
+    }
+
     public String getTextData() {
         return textData;
     }
@@ -215,6 +237,8 @@ public class QPConnConfig {
         config.connId = connId;
         config.tag = tag;
         config.priority = priority;
+        config.connectionTimeout = connectionTimeout;
+        config.readTimeout = readTimeout;
         config.method = method;
         config.url = url;
         config.textData = textData;
@@ -287,6 +311,15 @@ public class QPConnConfig {
         if(responseFormat==null){
             responseFormat = configuration.responseFormat;
         }
+
+        //copy configuration timeouts if not setted
+        if(connectionTimeout==0){
+            connectionTimeout = configuration.connectionTimeout;
+        }
+        if(readTimeout==0){
+            readTimeout = configuration.readTimeout;
+        }
+
     }
 
     /**

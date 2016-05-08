@@ -107,9 +107,7 @@ public class QPConnResponse {
         }
 
         //translate
-        if(mapData!=null){
-            transResponse = transManager.translate(mapData, config.responseTranslatorObject);
-        }
+        transResponse = transManager.translate(mapData, config.responseTranslatorObject);
 
     }
 

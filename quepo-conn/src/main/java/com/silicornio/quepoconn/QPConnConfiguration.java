@@ -19,4 +19,10 @@ public class QPConnConfiguration {
 
     /** Format of the request **/
     protected String requestFormat;
+
+    /** Timeout for connection **/
+    protected int connectionTimeout = 0;
+
+    /** Timeout for reading **/
+    protected int readTimeout = 0;
 }

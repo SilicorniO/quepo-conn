@@ -95,8 +95,9 @@ public class QPConnRequest {
      * This try to translate the objects received in a format to send
      * @param transManager QPTransManager translator manager to use
      * @param avoidClasses Class[] array of classes to avoid of translations
+     * @param serializeNull boolean TRUE to show nulls, FALSE to not show them
      */
-    protected void translateValues(QPTransManager transManager, Class[] avoidClasses){
+    protected void translateValues(QPTransManager transManager, Class[] avoidClasses, boolean serializeNull){
 
         //if translator is null or response configuration was not filled we dont translate
         if(transManager==null || config.requestFormat==null || config.requestTranslatorObject==null || config.requestObjects==null){
@@ -117,7 +118,7 @@ public class QPConnRequest {
         if(QPConnConfig.FORMAT_JSON.equalsIgnoreCase(config.responseFormat)){
 
             //translate the data received as text
-            String jsonMapInverse = QPTransUtils.convertMapToJSON(mapInverse);
+            String jsonMapInverse = QPTransUtils.convertMapToJSON(mapInverse, serializeNull);
             if(jsonMapInverse!=null){
                 data = jsonMapInverse.getBytes();
             }else{

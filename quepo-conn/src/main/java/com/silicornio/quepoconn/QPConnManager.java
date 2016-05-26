@@ -19,7 +19,7 @@ public class QPConnManager {
     private Map<QPConnExecutor, Thread> mExecutors = new HashMap<>();
 
     /** Maximum number of executors at same time **/
-    private int numMaxExecutors = 4;
+    private int mNumMaxExecutors = 4;
 
     /** Queue of configs to execute **/
     private QPConnQueue mQueue = new QPConnQueue();
@@ -39,6 +39,9 @@ public class QPConnManager {
     /** SSL Socket Factory associated to this manager **/
     protected SSLSocketFactory sslSocketFactory;
 
+    /** Flag to know if converting object it is necessary to send null values **/
+    private boolean mSerializeNull = false;
+
     public QPConnManager(){
 
     }
@@ -53,8 +56,22 @@ public class QPConnManager {
      * @param transAvoidClasses Class[] array of classes to avoid from translations
      */
     public void seTranslatorManager(QPTransManager transManager, Class[] transAvoidClasses) {
+        seTranslatorManager(transManager, transAvoidClasses, false);
+    }
+
+    /**
+     * Set the translator manager to apply
+     * @param transManager QPTransManager
+     * @param transAvoidClasses Class[] array of classes to avoid from translations
+     * @param serializeNull boolean TRUE to show null values, FALSE to hide it
+     */
+    public void seTranslatorManager(QPTransManager transManager, Class[] transAvoidClasses, boolean serializeNull) {
         mTransManager = transManager;
         mTransAvoidClasses = transAvoidClasses;
+        mSerializeNull = serializeNull;
+        if(mTransManager!=null){
+            mTransManager.setTranslateNullElements(serializeNull);
+        }
     }
 
     /**
@@ -63,6 +80,16 @@ public class QPConnManager {
      */
     public void setSslSocketFactory(SSLSocketFactory sslSocketFactory) {
         this.sslSocketFactory = sslSocketFactory;
+    }
+
+    /**
+     * Set the maximum number of executor at the same time
+     * @param numMaxExecutors int maximum number, it must be bigger than 0
+     */
+    public void setNumMaxExecutors(int numMaxExecutors){
+        if(numMaxExecutors>0) {
+            mNumMaxExecutors = numMaxExecutors;
+        }
     }
 
     //----- CONNECTIONS -----
@@ -95,7 +122,7 @@ public class QPConnManager {
     private boolean executeNextConn(){
 
         //check if it is possible to add new executors
-        if(mExecutors.size()>=numMaxExecutors){
+        if(mExecutors.size()>= mNumMaxExecutors){
             return false;
         }
 
@@ -123,7 +150,7 @@ public class QPConnManager {
             public void run() {
 
                 //translate objects if necessary
-                request.translateValues(mTransManager, mTransAvoidClasses);
+                request.translateValues(mTransManager, mTransAvoidClasses, mSerializeNull);
 
                 //execute
                 executor.execute();

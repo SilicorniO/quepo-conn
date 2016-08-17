@@ -225,7 +225,9 @@ public class QPConnExecutor{
             InputStream is = new BufferedInputStream(urlConnection.getInputStream());
             readStream(is, response);
         }catch(IOException ioe){
-            QPL.e("Exception receiving data: " + ioe.toString());
+            QPL.e("Exception receiving data, trying to read error stream: " + ioe.toString());
+            InputStream is = new BufferedInputStream(urlConnection.getErrorStream());
+            readStream(is, response);
         }
     }
 
